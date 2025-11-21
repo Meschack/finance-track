@@ -1,98 +1,242 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { SpendingCard } from '@/src/components/spending-card'
+import TransactionForm from '@/src/components/transaction-form'
+import TransactionItem from '@/src/components/transaction-item'
+import { GLOBAL_STYLES } from '@/src/constants/theme'
+import { useAppContext } from '@/src/context/app-context'
+import { Transaction, TransactionType } from '@/src/types'
+import { formatCurrency } from '@/src/utils/currency'
+import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import React, { useState } from 'react'
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter()
+  const {
+    transactions,
+    totalBalance,
+    weeklySpending,
+    spendingTrend,
+    addTransaction,
+    editTransaction,
+    deleteTransaction,
+    theme
+  } = useAppContext()
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [initialType, setInitialType] = useState<TransactionType>('expense')
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined)
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+  // Get last 5 transactions
+  const recentTransactions = transactions.slice(0, 5)
+
+  const handleSaveTransaction = async (data: any) => {
+    if (selectedTransaction) {
+      await editTransaction(data)
+    } else {
+      await addTransaction(data)
+    }
+    setIsModalVisible(false)
+    setSelectedTransaction(undefined)
+  }
+
+  const handleDeleteTransaction = async (id: string) => {
+    await deleteTransaction(id)
+    setIsModalVisible(false)
+    setSelectedTransaction(undefined)
+  }
+
+  const openTransactionForm = (type: TransactionType) => {
+    setInitialType(type)
+    setSelectedTransaction(undefined)
+    setIsModalVisible(true)
+  }
+
+  const openEditModal = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsModalVisible(true)
+  }
+
+  return (
+    <SafeAreaView style={[GLOBAL_STYLES.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.background }]}>
+        <View>
+          <Text style={[styles.greeting, { color: theme.textSecondary }]}>Welcome back</Text>
+          <Text style={[GLOBAL_STYLES.title, { color: theme.text }]}>Godwin</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.card }]}>
+            <Ionicons name="notifications-outline" size={24} color={theme.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: theme.card }]}
+            onPress={() => router.push('/settings')}
+          >
+            <Ionicons name="menu-outline" size={24} color={theme.icon} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <SpendingCard
+          totalBalance={totalBalance}
+          weeklySpending={weeklySpending}
+          spendingTrend={spendingTrend}
+          cardNumber="7321"
+          onReceivePress={() => openTransactionForm('earning')}
+          onSendPress={() => openTransactionForm('expense')}
+        />
+
+        <View style={styles.row}>
+          <BudgetTargetCard />
+          <View style={[styles.smallCard, { backgroundColor: theme.primary }]}>
+            <View style={GLOBAL_STYLES.row}>
+              <Text style={{ fontWeight: 'bold', color: theme.black }}>Th</Text>
+              <Text
+                style={{
+                  fontWeight: 'bold',
+                  marginLeft: 'auto',
+                  textDecorationLine: 'underline',
+                  color: theme.black
+                }}
+              >
+                ENTER
+              </Text>
+            </View>
+
+            <Text style={[styles.smallCardTitle, { color: theme.black, marginTop: 'auto' }]}>
+              Thara advisor mode...
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={GLOBAL_STYLES.row}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Last Transactions</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
+              <Text style={[styles.link, { color: theme.primary }]}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.list}>
+            {recentTransactions.length > 0 ? (
+              recentTransactions.map((t) => (
+                <TransactionItem key={t.id} transaction={t} onPress={() => openEditModal(t)} />
+              ))
+            ) : (
+              <Text style={{ color: theme.textSecondary, marginTop: 10 }}>
+                No transactions yet.
+              </Text>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View>
+            <TransactionForm
+              initialType={initialType}
+              initialTransaction={selectedTransaction}
+              onSubmit={handleSaveTransaction}
+              onDelete={selectedTransaction ? handleDeleteTransaction : undefined}
+              onCancel={() => setIsModalVisible(false)}
+            />
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  )
+}
+
+const BudgetTargetCard = () => {
+  const { budgetProgress, remainingBudget, settings, theme } = useAppContext()
+
+  const getProgressColor = () => {
+    if (budgetProgress < 70) return theme.success
+    if (budgetProgress < 90) return '#FFD60A'
+    return theme.danger
+  }
+
+  const getMessage = () => {
+    if (budgetProgress < 70) return "You're on track!"
+    if (budgetProgress < 90) return 'Approaching limit'
+    if (budgetProgress < 100) return 'Almost at budget'
+    return 'Over budget!'
+  }
+
+  const progressWidth = Math.min(budgetProgress, 100)
+
+  return (
+    <View style={[styles.smallCard, { backgroundColor: theme.card, gap: 4 }]}>
+      <Ionicons name="wallet-outline" size={20} color={theme.textSecondary} />
+
+      <View style={{ gap: 2 }}>
+        <Text style={[styles.budgetTitle, { color: theme.text }]}>{getMessage()}</Text>
+        <Text style={[styles.budgetAmount, { color: theme.textSecondary }]}>
+          {formatCurrency(remainingBudget)} left
+        </Text>
+      </View>
+
+      <View style={{ gap: 4 }}>
+        <View style={[styles.progressBar, { backgroundColor: theme.progressBarBackground }]}>
+          <View
+            style={{
+              height: '100%',
+              borderRadius: 0,
+              width: `${progressWidth}%`,
+              backgroundColor: getProgressColor()
+            }}
+          />
+        </View>
+        <Text style={[styles.budgetPercentage, { color: theme.textSecondary }]}>
+          {budgetProgress.toFixed(0)}% of {formatCurrency(settings.budget.limit)}
+        </Text>
+      </View>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  scrollContent: { padding: 20 },
+  greeting: { fontSize: 16 },
+  headerActions: { flexDirection: 'row', gap: 10 },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  row: { flexDirection: 'row', marginVertical: 20, gap: 10 },
+  smallCard: {
+    flex: 1,
+    height: 150,
+    borderRadius: 20,
+    padding: 15,
+    justifyContent: 'space-between'
   },
-});
+  smallCardTitle: { fontSize: 16, fontWeight: 'bold' },
+  progressBar: { height: 16, borderRadius: 0, overflow: 'hidden' },
+  section: { marginTop: 10 },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', flex: 1 },
+  link: { fontWeight: 'bold' },
+  list: { marginTop: 10 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  budgetTitle: { fontSize: 13, fontWeight: 'bold' },
+  budgetAmount: { fontSize: 11 },
+  budgetPercentage: { fontSize: 11 }
+})

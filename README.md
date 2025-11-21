@@ -1,50 +1,146 @@
-# Welcome to your Expo app 👋
+# Finance Tracking App 💰
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern, feature-rich finance tracking mobile application built with React Native and Expo. Track your income and expenses, manage budgets, and gain insights into your spending habits with a beautiful dark/light theme interface.
 
-## Get started
+## ✨ Features
 
-1. Install dependencies
+### 📊 Transaction Management
+- **Add Transactions**: Record income and expenses with detailed information (amount, reason, second party, date)
+- **Edit Transactions**: Tap any transaction to modify its details
+- **Delete Transactions**: Remove transactions with confirmation dialog
+- **Transaction Filters**: Filter by All, Expenses, or Income on the Transactions screen
 
+### 💳 Financial Insights
+- **Real-time Balance**: View your current total balance
+- **Weekly Spending**: Track your spending for the current week
+- **Spending Trends**: Compare current week spending vs. last week with percentage change
+- **Budget Management**: Set and manage monthly budget limits
+
+### 🎨 User Interface
+- **Dark/Light Theme**: Toggle between dark and light modes
+- **Modern Design**: Clean, intuitive interface with yellow accent colors
+- **Spending Card**: Visual representation of your financial status
+- **Quick Actions**: Receive and Send buttons for fast transaction entry
+
+### 💾 Data Persistence
+- **Local Storage**: All data saved using AsyncStorage
+- **Automatic Sync**: Changes reflected immediately across the app
+- **Currency Support**: F CFA currency format
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+- Expo CLI
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd finance-track-antigravity
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. **Start the development server**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. **Run on your device**
+   - Scan the QR code with Expo Go (Android) or Camera app (iOS)
+   - Or press `a` for Android emulator
+   - Or press `i` for iOS simulator
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📱 App Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+finance-track-antigravity/
+├── app/                          # Expo Router screens
+│   ├── (tabs)/                   # Tab navigation screens
+│   │   ├── index.tsx            # Home screen
+│   │   ├── transactions.tsx     # Transactions list screen
+│   │   ├── settings.tsx         # Settings screen
+│   │   └── _layout.tsx          # Tab layout configuration
+│   └── _layout.tsx              # Root layout
+├── src/
+│   ├── components/              # Reusable components
+│   │   ├── SpendingCard.tsx    # Main spending card component
+│   │   ├── TransactionForm.tsx # Add/Edit transaction form
+│   │   └── TransactionItem.tsx # Transaction list item
+│   ├── constants/
+│   │   └── theme.ts            # Theme colors and global styles
+│   ├── context/
+│   │   └── AppContext.tsx      # Global state management
+│   ├── services/
+│   │   └── storage.ts          # AsyncStorage wrapper
+│   ├── types/
+│   │   └── index.ts            # TypeScript type definitions
+│   └── utils/
+│       └── currency.ts         # Currency formatting utilities
+└── package.json
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🎯 Usage
 
-## Learn more
+### Adding a Transaction
+1. Tap the **+** button on the Transactions screen, or
+2. Use **Receive** (for income) or **Send** (for expenses) buttons on the Home screen
+3. Fill in the transaction details
+4. Tap "Add Transaction"
 
-To learn more about developing your project with Expo, look at the following resources:
+### Editing a Transaction
+1. Tap any transaction in the list
+2. Modify the details as needed
+3. Tap "Update Transaction"
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Deleting a Transaction
+1. Tap the transaction you want to delete
+2. Tap "Delete Transaction" button
+3. Confirm the deletion
 
-## Join the community
+### Changing Theme
+1. Go to the **Settings** tab
+2. Toggle the **Dark Mode** switch
+3. The app will immediately update across all screens
 
-Join our community of developers creating universal apps.
+### Managing Budget
+1. Go to the **Settings** tab
+2. Enter your desired monthly budget limit
+3. Tap "Update Budget"
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 🛠️ Technologies Used
+
+- **React Native**: Cross-platform mobile development
+- **Expo**: Development platform and tooling
+- **Expo Router**: File-based navigation
+- **TypeScript**: Type-safe development
+- **AsyncStorage**: Local data persistence
+- **React Context API**: Global state management
+
+## 📋 Future Enhancements
+
+- [ ] Online database synchronization
+- [ ] AI-driven financial advice
+- [ ] Budget target tracking
+- [ ] Transaction categories
+- [ ] Export data functionality
+- [ ] Charts and analytics
+- [ ] Multi-currency support
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 👨‍💻 Author
+
+Built with ❤️ using Expo and React Native
