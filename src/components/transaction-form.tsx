@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'
 import React, { useEffect, useState } from 'react'
 import {
   Alert,
@@ -35,31 +36,50 @@ export default function TransactionForm({
   initialTransaction
 }: TransactionFormProps) {
   const { theme } = useAppContext()
-  const [type, setType] = useState<TransactionType>(initialTransaction?.type || initialType)
-  const [amount, setAmount] = useState(initialTransaction?.amount.toString() || '')
-  const [reason, setReason] = useState(initialTransaction?.reason || '')
-  const [secondParty, setSecondParty] = useState(initialTransaction?.secondParty || '')
+
+  const [formData, setFormData] = useState({
+    type: initialTransaction?.type || initialType,
+    amount: initialTransaction?.amount.toString() || '',
+    reason: initialTransaction?.reason || '',
+    secondParty: initialTransaction?.secondParty || ''
+  })
 
   useEffect(() => {
     if (initialTransaction) {
-      setType(initialTransaction.type)
-      setAmount(initialTransaction.amount.toString())
-      setReason(initialTransaction.reason)
-      setSecondParty(initialTransaction.secondParty)
+      setFormData({
+        type: initialTransaction.type,
+        amount: initialTransaction.amount.toString(),
+        reason: initialTransaction.reason,
+        secondParty: initialTransaction.secondParty
+      })
     }
   }, [initialTransaction])
 
-  const handleSubmit = () => {
-    if (!amount || !reason || !secondParty) return
+  const updateField = (field: keyof typeof formData, value: string | TransactionType) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
-    onSubmit({
-      id: initialTransaction?.id,
-      type,
-      amount: parseFloat(amount),
-      reason,
-      secondParty,
-      date: initialTransaction?.date || new Date().toISOString()
-    })
+  const handleSubmit = () => {
+    if (!formData.amount || !formData.reason.trim() || !formData.secondParty.trim()) {
+      Alert.alert('Error', 'Please fill in all fields')
+      return
+    }
+
+    const transactionData: Transaction = {
+      id: initialTransaction?.id || Date.now().toString(),
+      type: formData.type,
+      amount: parseFloat(formData.amount),
+      reason: formData.reason.trim(),
+      secondParty: formData.secondParty.trim(),
+      date: new Date().toISOString()
+    }
+
+    onSubmit(transactionData)
+
+    // Reset form values after submission
+    if (!initialTransaction) {
+      setFormData({ type: 'expense', amount: '', reason: '', secondParty: '' })
+    }
   }
 
   const handleDelete = () => {
@@ -89,10 +109,10 @@ export default function TransactionForm({
         {(['expense', 'earning'] as const).map((element) => (
           <TouchableOpacity
             key={element}
-            onPress={() => setType(element)}
+            onPress={() => updateField('type', element)}
             style={[
               styles.typeButton,
-              { backgroundColor: element === type ? theme.border : 'transparent' }
+              { backgroundColor: element === formData.type ? theme.border : 'transparent' }
             ]}
           >
             <Text
@@ -100,7 +120,7 @@ export default function TransactionForm({
                 styles.typeText,
                 {
                   textTransform: 'capitalize',
-                  color: element === type ? theme.text : theme.textSecondary
+                  color: element === formData.type ? theme.text : theme.textSecondary
                 }
               ]}
             >
@@ -118,8 +138,8 @@ export default function TransactionForm({
             placeholder="0.00"
             placeholderTextColor={theme.textSecondary}
             keyboardType="numeric"
-            value={amount}
-            onChangeText={setAmount}
+            value={formData.amount}
+            onChangeText={(value) => updateField('amount', value)}
           />
         </View>
 
@@ -129,50 +149,50 @@ export default function TransactionForm({
             style={[styles.input, { backgroundColor: theme.card, color: theme.text }]}
             placeholder="e.g. Groceries"
             placeholderTextColor={theme.textSecondary}
-            value={reason}
-            onChangeText={setReason}
+            value={formData.reason}
+            onChangeText={(value) => updateField('reason', value)}
           />
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>
-            {type === 'expense' ? 'To' : 'From'}
+            {formData.type === 'expense' ? 'To' : 'From'}
           </Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.card, color: theme.text }]}
-            placeholder={type === 'expense' ? 'Receiver Name' : 'Sender Name'}
+            placeholder={formData.type === 'expense' ? 'Receiver Name' : 'Sender Name'}
             placeholderTextColor={theme.textSecondary}
-            value={secondParty}
-            onChangeText={setSecondParty}
+            value={formData.secondParty}
+            onChangeText={(value) => updateField('secondParty', value)}
           />
         </View>
 
-        <TouchableOpacity
-          style={[styles.submitButton, { backgroundColor: theme.primary }]}
-          onPress={handleSubmit}
-        >
-          <Text style={[styles.submitButtonText, { color: theme.black }]}>
-            {initialTransaction ? 'Update Transaction' : 'Add Transaction'}
-          </Text>
-        </TouchableOpacity>
-
-        {initialTransaction && onDelete && (
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 5 }}>
           <TouchableOpacity
-            style={[styles.deleteButton, { borderColor: theme.danger }]}
-            onPress={handleDelete}
+            style={[styles.submitButton, { backgroundColor: theme.primary, flex: 1 }]}
+            onPress={handleSubmit}
           >
-            <Text style={[styles.deleteButtonText, { color: theme.danger }]}>
-              Delete Transaction
+            <Text style={[styles.submitButtonText, { color: theme.black }]}>
+              {initialTransaction ? 'Update Transaction' : 'Add Transaction'}
             </Text>
           </TouchableOpacity>
-        )}
+
+          {initialTransaction && onDelete && (
+            <TouchableOpacity
+              style={[styles.deleteButton, { borderColor: theme.danger }]}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash-outline" size={24} color={theme.danger} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingBottom: 10 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -184,19 +204,21 @@ const styles = StyleSheet.create({
   typeSelector: { flexDirection: 'row', borderRadius: 10, padding: 6, marginBottom: 20 },
   typeButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   typeText: { fontWeight: 'bold' },
-  form: { gap: 15 },
-  inputGroup: { gap: 8 },
+  form: { gap: 10 },
+  inputGroup: { gap: 5 },
   label: { fontSize: 14 },
   input: { borderRadius: 10, padding: 15, fontSize: 16 },
-  submitButton: { padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  submitButton: { padding: 16, borderRadius: 10, alignItems: 'center' },
   submitButtonText: { fontWeight: 'bold', fontSize: 16 },
   deleteButton: {
-    padding: 16,
+    height: 'auto',
+    aspectRatio: 1,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 5,
     borderWidth: 1,
-    backgroundColor: 'transparent'
+    backgroundColor: 'transparent',
+    alignContent: 'center',
+    justifyContent: 'center'
   },
   deleteButtonText: { fontWeight: 'bold', fontSize: 16 }
 })

@@ -6,9 +6,10 @@ import { useAppContext } from '@/src/context/app-context'
 import { Transaction, TransactionType } from '@/src/types'
 import { formatCurrency } from '@/src/utils/currency'
 import { Ionicons } from '@expo/vector-icons'
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useRef, useState } from 'react'
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function HomeScreen() {
@@ -23,9 +24,10 @@ export default function HomeScreen() {
     deleteTransaction,
     theme
   } = useAppContext()
-  const [isModalVisible, setIsModalVisible] = useState(false)
   const [initialType, setInitialType] = useState<TransactionType>('expense')
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined)
+
+  const bottomSheetRef = useRef<BottomSheet>(null)
 
   // Get last 5 transactions
   const recentTransactions = transactions.slice(0, 5)
@@ -36,26 +38,37 @@ export default function HomeScreen() {
     } else {
       await addTransaction(data)
     }
-    setIsModalVisible(false)
+    bottomSheetRef.current?.close()
     setSelectedTransaction(undefined)
   }
 
   const handleDeleteTransaction = async (id: string) => {
     await deleteTransaction(id)
-    setIsModalVisible(false)
+    bottomSheetRef.current?.close()
     setSelectedTransaction(undefined)
   }
 
   const openTransactionForm = (type: TransactionType) => {
     setInitialType(type)
     setSelectedTransaction(undefined)
-    setIsModalVisible(true)
+    bottomSheetRef.current?.expand()
   }
 
   const openEditModal = (transaction: Transaction) => {
     setSelectedTransaction(transaction)
-    setIsModalVisible(true)
+    bottomSheetRef.current?.expand()
   }
+
+  const handleSheetClose = useCallback(() => {
+    setSelectedTransaction(undefined)
+  }, [])
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
+    ),
+    []
+  )
 
   return (
     <SafeAreaView style={[GLOBAL_STYLES.container, { backgroundColor: theme.background }]}>
@@ -132,24 +145,27 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        enablePanDownToClose
+        enableDynamicSizing={true}
+        backdropComponent={renderBackdrop}
+        onClose={handleSheetClose}
+        backgroundStyle={{ backgroundColor: theme.background }}
+        handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
+        keyboardBehavior="fillParent"
       >
-        <View style={styles.modalOverlay}>
-          <View>
-            <TransactionForm
-              initialType={initialType}
-              initialTransaction={selectedTransaction}
-              onSubmit={handleSaveTransaction}
-              onDelete={selectedTransaction ? handleDeleteTransaction : undefined}
-              onCancel={() => setIsModalVisible(false)}
-            />
-          </View>
-        </View>
-      </Modal>
+        <BottomSheetView>
+          <TransactionForm
+            initialType={initialType}
+            initialTransaction={selectedTransaction}
+            onSubmit={handleSaveTransaction}
+            onDelete={selectedTransaction ? handleDeleteTransaction : undefined}
+            onCancel={() => bottomSheetRef.current?.close()}
+          />
+        </BottomSheetView>
+      </BottomSheet>
     </SafeAreaView>
   )
 }
@@ -235,7 +251,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: 'bold', flex: 1 },
   link: { fontWeight: 'bold' },
   list: { marginTop: 10 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   budgetTitle: { fontSize: 13, fontWeight: 'bold' },
   budgetAmount: { fontSize: 11 },
   budgetPercentage: { fontSize: 11 }

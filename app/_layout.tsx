@@ -3,20 +3,24 @@ import { StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect } from 'react'
 import { Platform } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { AppProvider, useAppContext } from '../src/context/app-context'
 
 export default function RootLayout() {
   return (
-    <AppProvider>
-      <ThemedStack />
-    </AppProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppProvider>
+        <ThemedStack />
+      </AppProvider>
+    </GestureHandlerRootView>
   )
 }
 
-const ThemedStack = () => {
+function ThemedStack() {
   const { theme, settings } = useAppContext()
 
   useEffect(() => {
+    // Set navigation bar color to match tab bar (Android only)
     if (Platform.OS === 'android') {
       SystemUI.setBackgroundColorAsync(theme.tabBar)
     }

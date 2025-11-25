@@ -1,21 +1,22 @@
+import TransactionForm from '@/src/components/transaction-form'
+import TransactionItem from '@/src/components/transaction-item'
+import { COLORS, GLOBAL_STYLES } from '@/src/constants/theme'
+import { useAppContext } from '@/src/context/app-context'
+import { Transaction, TransactionType } from '@/src/types'
 import { Ionicons } from '@expo/vector-icons'
-import React, { useState } from 'react'
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import TransactionForm from '../../src/components/transaction-form'
-import TransactionItem from '../../src/components/transaction-item'
-import { GLOBAL_STYLES } from '../../src/constants/theme'
-import { useAppContext } from '../../src/context/app-context'
-import { Transaction, TransactionType } from '../../src/types'
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet'
+import React, { useCallback, useRef, useState } from 'react'
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 type FilterType = 'all' | TransactionType
 
 export default function TransactionsScreen() {
   const { transactions, addTransaction, editTransaction, deleteTransaction, theme } =
     useAppContext()
-  const [isModalVisible, setIsModalVisible] = useState(false)
   const [filter, setFilter] = useState<FilterType>('all')
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | undefined>(undefined)
+
+  const bottomSheetRef = useRef<BottomSheet>(null)
 
   const handleSaveTransaction = async (data: any) => {
     if (selectedTransaction) {
@@ -23,25 +24,36 @@ export default function TransactionsScreen() {
     } else {
       await addTransaction(data)
     }
-    setIsModalVisible(false)
+    bottomSheetRef.current?.close()
     setSelectedTransaction(undefined)
   }
 
   const handleDeleteTransaction = async (id: string) => {
     await deleteTransaction(id)
-    setIsModalVisible(false)
+    bottomSheetRef.current?.close()
     setSelectedTransaction(undefined)
   }
 
   const openAddModal = () => {
     setSelectedTransaction(undefined)
-    setIsModalVisible(true)
+    bottomSheetRef.current?.expand()
   }
 
   const openEditModal = (transaction: Transaction) => {
     setSelectedTransaction(transaction)
-    setIsModalVisible(true)
+    bottomSheetRef.current?.expand()
   }
+
+  const handleSheetClose = useCallback(() => {
+    setSelectedTransaction(undefined)
+  }, [])
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
+    ),
+    []
+  )
 
   const filteredTransactions = transactions.filter((t) => {
     if (filter === 'all') return true
@@ -70,23 +82,27 @@ export default function TransactionsScreen() {
   )
 
   return (
-    <SafeAreaView style={[GLOBAL_STYLES.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <Text style={[GLOBAL_STYLES.title, { color: theme.text }]}>Transactions</Text>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <FilterButton type="all" label="All" />
-        <FilterButton type="expense" label="Expenses" />
-        <FilterButton type="earning" label="Income" />
-      </View>
-
+    <View style={[GLOBAL_STYLES.container, { backgroundColor: theme.background }]}>
       <FlatList
+        key="transactions-list"
         data={filteredTransactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TransactionItem key={item.id} transaction={item} onPress={() => openEditModal(item)} />
         )}
+        ListHeaderComponent={
+          <View>
+            <View style={styles.header}>
+              <Text style={[GLOBAL_STYLES.title, { color: theme.text }]}>Transactions</Text>
+            </View>
+
+            <View style={styles.filterContainer}>
+              <FilterButton key="filter-all" type="all" label="All" />
+              <FilterButton key="filter-expense" type="expense" label="Expenses" />
+              <FilterButton key="filter-earning" type="earning" label="Income" />
+            </View>
+          </View>
+        }
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
@@ -102,36 +118,35 @@ export default function TransactionsScreen() {
         <Ionicons name="add" size={30} color={theme.black} />
       </TouchableOpacity>
 
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        enablePanDownToClose
+        enableDynamicSizing={true}
+        backdropComponent={renderBackdrop}
+        onClose={handleSheetClose}
+        backgroundStyle={{ backgroundColor: theme.background }}
+        handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
       >
-        <View style={styles.modalOverlay}>
-          <View>
-            <TransactionForm
-              initialTransaction={selectedTransaction}
-              onSubmit={handleSaveTransaction}
-              onDelete={selectedTransaction ? handleDeleteTransaction : undefined}
-              onCancel={() => setIsModalVisible(false)}
-            />
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        <BottomSheetView>
+          <TransactionForm
+            initialTransaction={selectedTransaction}
+            onSubmit={handleSaveTransaction}
+            onDelete={selectedTransaction ? handleDeleteTransaction : undefined}
+            onCancel={() => bottomSheetRef.current?.close()}
+          />
+        </BottomSheetView>
+      </BottomSheet>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 10 },
-  filterContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15, gap: 10 },
+  header: { paddingTop: 60, paddingBottom: 10 },
+  filterContainer: { flexDirection: 'row', marginBottom: 15, gap: 10 },
   filterButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1 },
   filterText: { fontWeight: '600' },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 100 // Space for FAB
-  },
+  listContent: { paddingHorizontal: 20 },
   emptyText: { textAlign: 'center', marginTop: 50 },
   fab: {
     position: 'absolute',
@@ -143,10 +158,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84
-  },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }
+  }
 })
